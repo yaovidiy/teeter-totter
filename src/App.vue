@@ -1,86 +1,45 @@
 <template>
   <div id="app">
     <div class="stats">
-      <fieldset>
-        <legend>Game Type</legend>
-
-        <input
-          type="radio"
-          id="auto"
-          name="gameType"
-          value="auto"
-          :checked="gameType === 'auto'"
-          @change="changeGameType"
-        />
-        <label for="auto">Auto game</label><br/>
-
-        <input
-          type="radio"
-          id="player"
-          name="gameType"
-          value="player"
-          :checked="gameType === 'player'"
-          @change="changeGameType"
-        />
-        <label for="player">Manual game</label><br/>
-      </fieldset>
-      <fieldset>
-        <legend>Game Stats</legend>
-
-        <label>Bendage degree:</label>
-        <span :style="{ color: `${Math.abs(degree) > 10 && Math.abs(degree) < 20 
-          ? '#00ff00'
-          : Math.abs(degree) > 20 && Math.abs(degree) < 25 
-          ? '#FFA500' : Math.abs(degree) > 25 
-          ? 'red' : '#000'}` }">{{ degree }}</span>
-        <label></label>
-        <label></label>
-      </fieldset>
+      <Stats
+        :degree="degree"
+        :gameType="gameType"
+      ></Stats>
     </div>
-    <button v-if="!isGameStarted && !isGameOver" @click="startGame" class="btn btn-add-block">Start Game</button>
-    <button v-else-if="isGameStarted && !isGamePaused" @click="pauseGame" class="btn btn-add-block">Pause Game</button>
-    <button v-else-if="isGameStarted && isGamePaused" @click="resumeGame" class="btn btn-add-block">Resume Game</button>
-    <div v-else-if="isGameOver" class="game-over-text">
-      <span>GAME OVER</span>
-      <button @click="restartGame">Restart</button>
-    </div>
-    <div class="planc" 
-      ref="planc"
-      :class="{'game-over': isGameOver}"
-      :style="{ 
-          transform: `rotate(${degree}deg)`, 
-          transition: `all ${transitionTime}s cubic-bezier(0.125, 0.885, 0.32, 1.275)` }">
-      <div v-for="(block, index) in blocks" class="block" :key="block.id">
-        <div v-if="block.animated && block.animated.length">
-          <transition-group name="animated" :key="index" tag="div" class="animated">
-            <div v-for="anim in block.animated"
-              :key="anim.id"
-              :style="{ top: `${-anim.top}px`, transform: `rotate(${-degree}deg)`}"
-              :class="anim.class"
-            >
-              <span>{{ anim.prognozedForce }} kgm</span>
-              {{ anim.weight }}
-            </div>
-          </transition-group>
-        </div>
-        <div v-if="block.weights.length">
-          <transition-group name="weights" tag="div">
-            <div v-for="weight in block.weights"
-              :class="[weight.class]"
-              :key="weight.id">
-              {{ weight.weight }}
-            </div>
-          </transition-group>
-        </div>
-      </div>
-    </div>
+    <Controls
+      :isGameStarted="isGameStarted"
+      :isGamePaused="isGamePaused"
+      :isGameOver="isGameOver"
+      @pause="pauseGame"
+      @resume="resumeGame"
+      @restart="restartGame"
+      @start="startGame"
+    >
+    </Controls>
+    <Plank
+      :blocks="blocks"
+      :degree="degree"
+      :transitionTime="transitionTime"
+      :isGameOver="isGameOver"
+    >
+    </Plank>
     <div class="stand"></div>
   </div>
 </template>
 
 <script>
+import Stats from './components/Stats.vue';
+import Controls from './components/Controls.vue';
+import Plank from './components/Plank.vue';
+import { generateWeightBlock, countForceDifference } from './helpers/utils.js';
+
 export default {
   name: 'App',
+  components: {
+    Stats,
+    Controls,
+    Plank
+  },
   data() {
     return {
       isGameOver: false,
@@ -89,108 +48,15 @@ export default {
       gameType: 'player',
       index: 0,
       interval: null,
-      blocks: [
-        {
-          side: 'left',
-          length: 5,
-          weights: [],
-          animated:[],
-          id: this.guidGenerator()
-        },
-        {
-          side: 'left',
-          length: 4,
-          weights: [],
-          animated:[],
-          id: this.guidGenerator()
-        },
-        {
-          side: 'left',
-          length: 3,
-          weights: [],
-          animated:[],
-          id: this.guidGenerator()
-        },
-        {
-          side: 'left',
-          length: 2,
-          weights: [],
-          animated:[],
-          id: this.guidGenerator()
-        }, 
-        {
-          side: 'left',
-          length: 1,
-          weights: [],
-          animated:[],
-          id: this.guidGenerator()
-        },
-        {
-          side: 'right',
-          length: 1,
-          weights: [],
-          id: this.guidGenerator()
-        },
-        {
-          side: 'right',
-          length: 2,
-          weights: [],
-          id: this.guidGenerator()
-        },
-        {
-          side: 'right',
-          length: 3,
-          weights: [],
-          id: this.guidGenerator()
-        },
-        {
-          side: 'right',
-          length: 4,
-          weights: [],
-          id: this.guidGenerator()
-        },
-        {
-          side: 'right',
-          length: 5,
-          weights: [],
-          id: this.guidGenerator()
-        }                                              
-      ]
+      
     }
   },
   computed: {
+    blocks() {
+      return this.$store.getters.BLOCKS;
+    },
     degree() {
-      const leftForce = this.blocks.reduce((acc, currItem) => {
-        if (!currItem.weights.length || currItem.side !== 'left') {
-          return acc;
-        }
-
-        const allWeight = currItem.weights.reduce((acc, currItem) => {
-          return acc + currItem.weight;
-        }, 0)
-
-        const force = currItem.length * allWeight;
-
-        return acc + force;
-
-      }, 0);
-
-      const rightForce = this.blocks.reduce((acc, currItem) => {
-        if (!currItem.weights.length || currItem.side !== 'right') {
-          return acc;
-        }
-
-        const allWeight = currItem.weights.reduce((acc, currItem) => {
-          return acc + currItem.weight;
-        }, 0)
-
-        const force = currItem.length * allWeight;
-
-        return acc + force;
-
-      }, 0)
-
-      return rightForce - leftForce;
+      return countForceDifference(this.blocks);
     },
     transitionTime() {
       return 0.5 - (Math.abs(this.degree) / 100);
@@ -214,7 +80,6 @@ export default {
       this.isGameOver = false;
     },
     gameOver: function() {
-      console.log('red');
       this.isGameOver = true;
       clearInterval(this.interval);
       this.clearListeners();
@@ -223,38 +88,17 @@ export default {
       this.isGamePaused = false;
     },
     clearBlocks: function() {
-      this.blocks.forEach(block => {
-        block.animated = [];
-        block.weights = [];
-      });
+      this.$store.dispatch('CLEAR_BLOCKS');
     },
     drawFigure: function() {
-      this.index = Math.floor(Math.random() * 4);
-
-      const length = [5, 4, 3, 2, 1];
-      const figureClasses = [
-        'weight-square',
-        'weight-circle',
-        'weight-triangle'
-      ];
-      const randomWeight = Math.floor(Math.random() * (10 - 1) + 1);
-      const randomClass = figureClasses[Math.floor(Math.random() * 2)];
-      const randomFigure = {
-        weight: randomWeight,
-        class: randomClass,
-        type: 'circle',
-        top: 200,
-        id: this.guidGenerator(),
-        prognozedForce: randomWeight * length[this.index]
+      if (this.isGameOver) {
+        return;
       }
 
-      this.addBlockAnimated(randomFigure);
-    },
-    guidGenerator() {
-    const S4 = function() {
-       return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
-    };
-    return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
+      const { index, block } = generateWeightBlock(true);
+      this.index = index;
+
+      this.addBlockAnimated(block);
     },
     addKeyboardListeners: function() {
       window.addEventListener('keyup', this.keyPress);
@@ -285,19 +129,14 @@ export default {
       }
     },
     moveAnimatedBlock: function(inc) {
-      const length = [5, 4, 3, 2, 1];
-      const blockToMove = {...this.blocks[this.index].animated[0]};
-
-      this.blocks[this.index].animated = [];
-
-      if (inc) {
-        this.index++;
-      } else {
-        this.index--;
+      if ((inc && this.index >= 4) || (!inc && this.index <= 0)) {
+        return;
       }
 
-      blockToMove.prognozedForce = length[this.index] * blockToMove.weight;
-      this.blocks[this.index].animated.push(blockToMove);
+      const oldIndex = this.index;
+      const newIndex = inc ? ++this.index : --this.index;
+
+      this.$store.commit('MOVE_ANIMATION', { newIndex, oldIndex });
     },
     startAnimation: function() {
       if (this.interval) {
@@ -313,8 +152,6 @@ export default {
         if ($vm.blocks[$vm.index].animated[0].top <= 0) {
           $vm.clearListeners();
           $vm.placeBlock();
-
-          console.log($vm.degree);
 
           if ($vm.isGameOver || Math.abs($vm.degree) >= 20) {
             return $vm.gameOver();
@@ -333,92 +170,28 @@ export default {
       }, 50);
     },
     addBlockAnimated: function(figureObject) {
-      this.blocks[this.index].animated.push(figureObject);
+      this.$store.commit('ADD_ANIMATION', {index: this.index, block: figureObject});
       this.startAnimation();
     },
     startGame: function() {
       this.addRandomBlock();
       this.isGameStarted = true;
 
-      if (this.isGameOver) {
-        return;
-      }
-
       setTimeout(()=> {
         this.drawFigure();
       }, 500);
     },
     addRandomBlock: function () {
-      const randomIndex = Math.floor(Math.random() * (9 - 5) + 5);
+      const {index, block} = generateWeightBlock(false);
 
-      this.blocks[randomIndex].weights.unshift({
-        type: 'square',
-        class: 'weight-square',
-        weight: Math.floor(Math.random() * (10 - 1) + 1),
-        id: this.guidGenerator()
-      });
+      this.$store.commit('ADD_BLOCK', { index, block });
     },
     placeBlock: function() {
-      const blockToPlace = this.blocks[this.index].animated[0];
-
-      this.blocks[this.index].animated = [];
-      this.blocks[this.index].weights.unshift(blockToPlace);
+      this.$store.commit('PLACE_BLOCK', { index: this.index });
     },
-    addBlock: function(len, weight) {
-      const index = this.blocks.findIndex((block, index) => {
-        if (block.length === len && block.side === 'right') {
-          return index;
-        }
-      });
-
-      this.blocks[index].weights.unshift({
-        type: 'circle',
-        class: 'weight-circle',
-        weight: weight,
-        id: this.guidGenerator()
-      });
-    },
-    equalize: function() {
-      if (this.degree > 0) {
-        return;
-      }
-
-      let weight = 1;
-      let length = 1;
-
-      if (this.degree >= -10) {
-        weight = Math.abs(this.degree);
-      } else {
-        let newForce = this.findNeededForce(length, weight);
-
-        if (!newForce) {
-          return 'gameOver';
-        }
-
-        weight = newForce.weight;
-        length = newForce.length;
-      }
-
-      this.addBlock(length, weight);
-    },
-    findNeededForce: function(l, w) {
-      let currentForce = Math.abs(this.degree);
-      let weight = w;
-      let length = Math.floor(currentForce / weight);
-
-      if (length > 0 && length <= 5) {
-        return {
-          weight: weight,
-          length: length
-        }
-      }
-
-      if (weight > 10) {
-        return null;
-      }
-
-      return this.findNeededForce(l, w+1);
-    }
+  },
+  mounted() {
+    this.$store.dispatch('GENERATE_BLOCKS');
   },
   watch: {
     degree(newDegree) {
@@ -456,44 +229,6 @@ export default {
   top: 0;
   left: 50%;
   transform: translate(-50%, 30%);
-}
-
-.weight-square {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 30px;
-  height: 30px;
-  position: relative;
-  top: 0;
-  text-align:center;
-  border: 2px solid blue;
-  transition: all .1s;
-}
-
-.weight-circle {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 30px;
-  height: 30px;
-  position: relative;
-  top: 0;
-  border: 2px solid green;
-  border-radius: 50%;
-  background-color: transparent;
-  transition: all .1s;
-}
-
-.weight-triangle {
-  width: 0; 
-  height: 0; 
-  border-left: 15px solid transparent;
-  border-right: 15px solid transparent;
-  border-bottom: 30px solid red;
-  margin: 0 auto;
-  transition: all .1s;
-
 }
 
 .planc .block {
