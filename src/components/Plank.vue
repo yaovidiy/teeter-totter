@@ -49,4 +49,37 @@ export default {
 </script>
 
 <style>
+.planc {
+  display: flex;
+  width: 100%;
+  height: 5px;
+  background-color: green;
+  transform: rotate(0deg);
+  transition: all 1s;
+}
+
+.planc .block {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  position: relative;
+  align-items: center;
+  width: 10%;
+  text-align: center;
+  margin-bottom: 5px;
+}
+
+.game-over {
+  animation: 2s linear 0s infinite gameOver;
+}
+
+@keyframes gameOver {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
 </style>

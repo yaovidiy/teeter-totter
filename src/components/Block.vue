@@ -73,4 +73,15 @@ export default {
   color: #fff;
 
 }
+
+.animated div {
+  position: relative;
+}
+
+.animated div span {
+  position: absolute;
+  top: -20px;
+  display: inline;
+  white-space: nowrap;
+}
 </style>

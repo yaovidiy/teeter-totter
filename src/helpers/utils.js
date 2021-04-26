@@ -1,5 +1,4 @@
 const leftLenght = [5, 4, 3, 2, 1];
-// const rightLenght = [1, 2, 3, 4, 5];
 const fullLenght = [5, 4, 3, 2, 1, 1, 2, 3, 4, 5];
 const blockTypes = [
   'triangle',
@@ -16,7 +15,7 @@ const getRandomNumber = (max, min = null) => {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-const generateBlock = (index) => {
+const generateBlock = index => {
   return {
     side: index < 5 ? 'left' : 'right',
     length: fullLenght[index],
@@ -26,7 +25,7 @@ const generateBlock = (index) => {
   }
 };
 
-const generateLengthAndWeight = (animated) => {
+const generateLengthAndWeight = animated => {
   const minIndex = animated ? 0 : 5;
   const maxIndex = animated
     ? leftLenght.length - 1
@@ -53,6 +52,14 @@ const reducer = (acc, currItem) => {
   return acc + currItemForce;
 };
 
+const guidGenerator = () => {
+  const S4 = function() {
+     return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
+  };
+
+  return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
+};
+
 export const countForceDifference = blocks => {
   const leftSide = blocks.filter(block => block.side === 'left');
   const rightSide = blocks.filter(block => block.side === 'right');
@@ -74,14 +81,6 @@ export const clearBlocks = blocks => {
 
   return clearedBlocks;
 }
-
-export const guidGenerator = () => {
-  const S4 = function() {
-     return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
-  };
-
-  return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
-};
 
 export const generateWeightBlock = (animated) => {
   const { index, randomWeight } = generateLengthAndWeight(animated);

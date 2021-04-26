@@ -1,11 +1,11 @@
 <template>
   <div id="app">
-    <div class="stats">
-      <Stats
-        :degree="degree"
-        :gameType="gameType"
-      ></Stats>
-    </div>
+    <Stats
+      :degree="forceDifference"
+      :gameType="gameType"
+      :isGameStarted="isGameStarted"
+      @changeGameType="changeGameType"
+    ></Stats>
     <Controls
       :isGameStarted="isGameStarted"
       :isGamePaused="isGamePaused"
@@ -18,7 +18,7 @@
     </Controls>
     <Plank
       :blocks="blocks"
-      :degree="degree"
+      :degree="forceDifference"
       :transitionTime="transitionTime"
       :isGameOver="isGameOver"
     >
@@ -47,24 +47,29 @@ export default {
       isGamePaused: false,
       gameType: 'player',
       index: 0,
-      interval: null,
-      
+      interval: null
     }
   },
   computed: {
+    animatedBlockIndex() {
+      return this.$store.getters.ROW_INDEX_WITH_ANIMATION;
+    },
+    animatedBlockTop() {
+      return this.$store.getters.ANIMATED_BLOCK_TOP;
+    },
     blocks() {
       return this.$store.getters.BLOCKS;
     },
-    degree() {
+    forceDifference() {
       return countForceDifference(this.blocks);
     },
     transitionTime() {
-      return 0.5 - (Math.abs(this.degree) / 100);
+      return 1 - (Math.abs(this.forceDifference) / 100);
     }
   },
   methods: {
-    changeGameType: function(event) {
-      this.gameType = event.target.value;
+    changeGameType: function(value) {
+      this.gameType = value;
     },
     pauseGame: function() {
       this.isGamePaused = true;
@@ -96,9 +101,8 @@ export default {
       }
 
       const { index, block } = generateWeightBlock(true);
-      this.index = index;
 
-      this.addBlockAnimated(block);
+      this.addBlockAnimated(index, block);
     },
     addKeyboardListeners: function() {
       window.addEventListener('keyup', this.keyPress);
@@ -109,34 +113,24 @@ export default {
     keyPress: function(event) {
       switch(event.code) {
         case 'ArrowRight':
-          if (this.index >= 4) {
+          if (this.animatedBlockIndex >= 4) {
             return;
           }
 
-          this.moveAnimatedBlock(true);
+          this.$store.dispatch('CHANGE_BLOCK_ROW', { moveTo: 'right' });
           
           break;
         case 'ArrowLeft':
-          if (this.index <= 0) {
+          if (this.animatedBlockIndex <= 0) {
             return;
           }
 
-          this.moveAnimatedBlock(false);
+          this.$store.dispatch('CHANGE_BLOCK_ROW', { moveTo: 'left' });
 
           break;
         default:
           return;
       }
-    },
-    moveAnimatedBlock: function(inc) {
-      if ((inc && this.index >= 4) || (!inc && this.index <= 0)) {
-        return;
-      }
-
-      const oldIndex = this.index;
-      const newIndex = inc ? ++this.index : --this.index;
-
-      this.$store.commit('MOVE_ANIMATION', { newIndex, oldIndex });
     },
     startAnimation: function() {
       if (this.interval) {
@@ -147,13 +141,13 @@ export default {
 
       this.addKeyboardListeners();
       this.interval = setInterval(() => {
-        $vm.blocks[$vm.index].animated[0].top--;
+        $vm.$store.dispatch('DECRECE_BLOCK_TOP');
 
-        if ($vm.blocks[$vm.index].animated[0].top <= 0) {
+        if ($vm.animatedBlockTop <= 0) {
           $vm.clearListeners();
           $vm.placeBlock();
 
-          if ($vm.isGameOver || Math.abs($vm.degree) >= 20) {
+          if ($vm.isGameOver || Math.abs($vm.forceDifference) >= 20) {
             return $vm.gameOver();
           }
 
@@ -169,8 +163,8 @@ export default {
         }
       }, 50);
     },
-    addBlockAnimated: function(figureObject) {
-      this.$store.commit('ADD_ANIMATION', {index: this.index, block: figureObject});
+    addBlockAnimated: function(index, figureObject) {
+      this.$store.commit('ADD_ANIMATION', {index: index, block: figureObject});
       this.startAnimation();
     },
     startGame: function() {
@@ -187,15 +181,15 @@ export default {
       this.$store.commit('ADD_BLOCK', { index, block });
     },
     placeBlock: function() {
-      this.$store.commit('PLACE_BLOCK', { index: this.index });
+      this.$store.commit('PLACE_BLOCK', { index: this.animatedBlockIndex });
     },
   },
   mounted() {
     this.$store.dispatch('GENERATE_BLOCKS');
   },
   watch: {
-    degree(newDegree) {
-      if (Math.abs(newDegree) >= 20) {
+    forceDifference(newForceDifference) {
+      if (Math.abs(newForceDifference) >= 20) {
         return this.gameOver();
       }
     }
@@ -215,95 +209,11 @@ export default {
   height: 400px;
 }
 
-.planc {
-  display: flex;
-  width: 100%;
-  height: 5px;
-  background-color: green;
-  transform: rotate(0deg);
-  transition: all 1s;
-}
-
-.btn {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translate(-50%, 30%);
-}
-
-.planc .block {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  position: relative;
-  align-items: center;
-  width: 10%;
-  text-align: center;
-  margin-bottom: 5px;
-}
-
-.animated div div {
-  position: relative;  
-}
-
 .stand {
   width: 0; 
   height: 0; 
   border-left: 60px solid transparent;
   border-right: 60px solid transparent;
   border-bottom: 60px solid red;
-}
-
-.weights-enter,
-.weights-leave-to {
-  top: -200px;
-}
-
-.weights-leave-active {
-  top: 0;
-}
-
-.game-over {
-  animation: 2s linear 0s infinite gameOver;
-}
-
-.game-over-text {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  transform: translate(-50%, -50%);
-  z-index: 10;
-}
-
-.stats {
-  float: right;
-  position: absolute;
-  top: 0;
-  right: 0;
-}
-
-.animated div {
-  position: relative;
-}
-
-.animated div span {
-  position: absolute;
-  top: -20px;
-  display: inline;
-  white-space: nowrap;
-}
-
-@keyframes gameOver {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
 }
 </style>

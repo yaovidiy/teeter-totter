@@ -1,5 +1,5 @@
 <template>
-  <section>
+  <section class="stats">
     <fieldset>
       <legend>Game Type</legend>
 
@@ -10,6 +10,7 @@
         value="auto"
         :checked="gameType === 'auto'"
         @change="changeGameType"
+        :readonly="isGameStarted"
       />
       <label for="auto">Auto game</label><br/>
 
@@ -20,19 +21,14 @@
         value="player"
         :checked="gameType === 'player'"
         @change="changeGameType"
+        :readonly="isGameStarted"
       />
       <label for="player">Manual game</label><br/>
     </fieldset>
     <fieldset>
       <legend>Game Stats</legend>
-      <label>Bendage degree:</label>
-      <span :style="{ color: `${Math.abs(degree) > 10 && Math.abs(degree) < 20 
-        ? '#00ff00'
-        : Math.abs(degree) > 20 && Math.abs(degree) < 25 
-        ? '#FFA500' : Math.abs(degree) > 25 
-        ? 'red' : '#000'}` }">{{ degree }}</span>
-      <label></label>
-      <label></label>
+      <label>Weight difference:</label>
+      <span :style="{ color: `${degreeColor()}` }">{{ degree }} kgm</span>
     </fieldset>
   </section>
 </template>
@@ -42,15 +38,34 @@ export default {
   name: 'Stats',
   props: {
     degree: Number,
-    gameType: String
+    gameType: String,
+    isGameStarted: Boolean
   },
   methods: {
     changeGameType: function(event) {
-      this.gameType = event.target.value;
+      this.$emit('changeGameType', event.target.value);
+    },
+    degreeColor: function() {
+      const currentDegree = Math.abs(this.degree);
+
+      if (currentDegree >= 0 && currentDegree < 10) {
+        return '#00ff00';
+      } else if (currentDegree >= 10 && currentDegree < 15) {
+        return '#FFA500';
+      } else if (currentDegree > 15 && currentDegree < 20) {
+        return 'red';
+      } else {
+        return '#000';
+      }
     }
   }
 }
 </script>
 
 <style>
+.stats {
+  position: absolute;
+  right: 0;
+  top: 0;
+}
 </style>
