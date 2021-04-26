@@ -10,7 +10,7 @@
         value="auto"
         :checked="gameType === 'auto'"
         @change="changeGameType"
-        :readonly="isGameStarted"
+        :disabled="isGameStarted"
       />
       <label for="auto">Auto game</label><br/>
 
@@ -21,7 +21,7 @@
         value="player"
         :checked="gameType === 'player'"
         @change="changeGameType"
-        :readonly="isGameStarted"
+        :disabled="isGameStarted"
       />
       <label for="player">Manual game</label><br/>
     </fieldset>
