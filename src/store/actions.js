@@ -9,7 +9,7 @@ const GENERATE_BLOCKS = context => {
   context.commit('SET_BLOCKS', generatedBlocks);
 };
 
-const CLEAR_BLOCKS = context => {
+const REMOVE_WEIGHTS = context => {
   const clearedBlocks = clearBlocks(context.getters.BLOCKS);
 
   context.commit('SET_BLOCKS', clearedBlocks);
@@ -44,7 +44,7 @@ const DECRECE_BLOCK_TOP = context => {
 
 export default {
   GENERATE_BLOCKS,
-  CLEAR_BLOCKS,
+  REMOVE_WEIGHTS,
   CHANGE_BLOCK_ROW,
   DECRECE_BLOCK_TOP
 }

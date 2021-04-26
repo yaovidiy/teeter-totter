@@ -71,6 +71,14 @@ export default {
     changeGameType: function(value) {
       this.gameType = value;
     },
+    startGame: function() {
+      this.addRandomWeight();
+      this.isGameStarted = true;
+
+      setTimeout(()=> {
+        this.drawWeight();
+      }, 500);
+    },
     pauseGame: function() {
       this.isGamePaused = true;
       clearInterval(this.interval);
@@ -78,31 +86,31 @@ export default {
     },
     resumeGame: function() {
       this.isGamePaused = false;
-      this.startAnimation();
+      this.startDescent();
     },
     restartGame: function() {
-      this.clearBlocks();
+      this.removeWeights();
       this.isGameOver = false;
     },
     gameOver: function() {
       this.isGameOver = true;
       clearInterval(this.interval);
       this.clearListeners();
-      this.clearBlocks();
+      this.removeWeights();
       this.isGameStarted = false;
       this.isGamePaused = false;
     },
-    clearBlocks: function() {
-      this.$store.dispatch('CLEAR_BLOCKS');
+    removeWeights: function() {
+      this.$store.dispatch('REMOVE_WEIGHTS');
     },
-    drawFigure: function() {
+    drawWeight: function() {
       if (this.isGameOver) {
         return;
       }
 
       const { index, block } = generateWeightBlock(true);
 
-      this.addBlockAnimated(index, block);
+      this.addFallingWeight(index, block);
     },
     addKeyboardListeners: function() {
       window.addEventListener('keyup', this.keyPress);
@@ -132,7 +140,7 @@ export default {
           return;
       }
     },
-    startAnimation: function() {
+    startDescent: function() {
       if (this.interval) {
         clearInterval(this.interval);
       }
@@ -152,10 +160,10 @@ export default {
           }
 
           setTimeout(() => {
-            $vm.drawFigure();
+            $vm.drawWeight();
             
             setTimeout(() => {
-              $vm.addRandomBlock();
+              $vm.addRandomWeight();
             }, 1500);
           }, 200);
 
@@ -163,19 +171,11 @@ export default {
         }
       }, 50);
     },
-    addBlockAnimated: function(index, figureObject) {
-      this.$store.commit('ADD_ANIMATION', {index: index, block: figureObject});
-      this.startAnimation();
+    addFallingWeight: function(index, weight) {
+      this.$store.commit('ADD_ANIMATION', { index, block: weight });
+      this.startDescent();
     },
-    startGame: function() {
-      this.addRandomBlock();
-      this.isGameStarted = true;
-
-      setTimeout(()=> {
-        this.drawFigure();
-      }, 500);
-    },
-    addRandomBlock: function () {
+    addRandomWeight: function () {
       const {index, block} = generateWeightBlock(false);
 
       this.$store.commit('ADD_BLOCK', { index, block });
